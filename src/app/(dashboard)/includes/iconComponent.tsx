@@ -1,0 +1,118 @@
+type IconName =
+  | "menu"
+  | "clock"
+  | "mail"
+  | "chev-down"
+  | "chev-up"
+  | "close"
+  | "calendar"
+  | "user"
+  | "users"
+  | "id"
+  | "dot"
+  | "panel-left-close"
+  | "panel-right-open";
+
+type IconProps = {
+  name: IconName;
+  className?: string;
+};
+
+export default function IconComponent({ name, className }: IconProps) {
+  const props = { className: `${className ?? "h-4 w-4"}` };
+  switch (name) {
+    case "menu":
+      return (
+        <svg {...props} viewBox="0 0 24 24" fill="currentColor">
+          <path d="M3 6h18v2H3zM3 11h18v2H3zM3 16h18v2H3z" />
+        </svg>
+      );
+    case "clock":
+      return (
+        <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 7v5l3 2" />
+        </svg>
+      );
+    case "mail":
+      return (
+        <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+          <path d="M4 6h16v12H4z" />
+          <path d="m4 7 8 6 8-6" />
+        </svg>
+      );
+    case "chev-down":
+      return (
+        <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+          <path d="m6 9 6 6 6-6" />
+        </svg>
+      );
+    case "chev-up":
+      return (
+        <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+          <path d="m6 15 6-6 6 6" />
+        </svg>
+      );
+    case "close":
+      return (
+        <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+          <path d="M6 6l12 12M6 18L18 6" />
+        </svg>
+      );
+    case "calendar":
+      return (
+        <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+          <rect x="3" y="4" width="18" height="17" rx="2" />
+          <path d="M16 2v4M8 2v4M3 10h18" />
+        </svg>
+      );
+    case "user":
+      return (
+        <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+          <circle cx="12" cy="7.5" r="3.5" />
+          <path d="M4 20a8 8 0 0 1 16 0" />
+        </svg>
+      );
+    case "users":
+      return (
+        <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+          <circle cx="9" cy="7" r="3" />
+          <circle cx="17" cy="9" r="3" />
+          <path d="M2 21a7 7 0 0 1 14 0" />
+          <path d="M10 21a7 7 0 0 1 12-3" />
+        </svg>
+      );
+    case "id":
+      return (
+        <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+          <rect x="3" y="5" width="18" height="14" rx="2" />
+          <circle cx="9" cy="12" r="3" />
+          <path d="M15 10h4M15 14h4" />
+        </svg>
+      );
+    case "dot":
+      return (
+        <svg {...props} viewBox="0 0 8 8" fill="currentColor">
+          <circle cx="4" cy="4" r="3" />
+        </svg>
+      );
+    case "panel-left-close":
+      return (
+        <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+          <rect x="3" y="4" width="18" height="16" rx="2" />
+          <path d="M9 4v16" />
+          <path d="M12 12l-3 3m3-3-3-3" />
+        </svg>
+      );
+    case "panel-right-open":
+      return (
+        <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+          <rect x="3" y="4" width="18" height="16" rx="2" />
+          <path d="M9 4v16" />
+          <path d="M12 12l3-3m-3 3 3 3" />
+        </svg>
+      );
+    default:
+      return null;
+  }
+}
