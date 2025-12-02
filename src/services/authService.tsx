@@ -12,8 +12,8 @@ interface registerPayload {
 export const register = async (payload: registerPayload) => {
   const response = await api.post("/register", payload);
   if (response.data?.token) {
-    Cookies.set("token", response.data?.token); //
-    Cookies.set("user", JSON.stringify(response.data.user));
+    localStorage.setItem("token", response.data?.token); //
+    localStorage.setItem("user", JSON.stringify(response.data.user));
   }
   return response.data;
 };
@@ -27,8 +27,8 @@ export async function login(email: string, password: string) {
     const { token, user } = response.data;
 
     // ✅ কুকি ও লোকালস্টোরেজে ডেটা সেট করো
-    Cookies.set("token", token);
-    Cookies.set("user", JSON.stringify(user));
+    localStorage.setItem("token", token);
+    localStorage.setItem("user", JSON.stringify(user));
 
     return user;
   } catch (error: any) {
@@ -48,8 +48,8 @@ export async function logout() {
   }
 
   // ✅ ক্লায়েন্ট সাইডে সব কিছু রিমুভ করো
-  Cookies.remove("token");
-  Cookies.remove("user");
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
 }
 
 // =========================
@@ -57,7 +57,7 @@ export async function logout() {
 // =========================
 export function getUser() {
   try {
-    const storedUser =  Cookies.get("user");
+    const storedUser =  localStorage.getItem("user");
     if (!storedUser) return null;
     return JSON.parse(storedUser);
   } catch {
@@ -70,6 +70,6 @@ export function getUser() {
 // CHECK IF LOGGED IN
 // =========================
 export function isAuthenticated(): boolean {
-  const token = Cookies.get("token");
+  const token = localStorage.getItem("token");
   return !!token;
 }

@@ -94,7 +94,7 @@ export default function Sidebar({ open, setOpen, onNavigate, isCollapsed }: Side
         </div>
 
         <Group title="User Management" icon="users" isOpenKey="userMgmt">
-          <LinkItem icon="dot" label="Users" href="#" />
+          <LinkItem icon="dot" label="Users" href="/user" />
           <LinkItem icon="dot" label="Permissions" href="/permission" />
           <LinkItem icon="dot" label="Roles" href="/role" />
         </Group>
