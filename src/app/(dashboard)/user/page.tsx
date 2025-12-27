@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { fetchUsers } from "src/services/userServices";
+import { fetchUsers, assignRole } from "src/services/userServices";
+import { fetchRoles } from "src/services/roleServices";
 import IconButton from "src/app/(dashboard)/includes/iconBtn";
 import IconComponent from "src/app/(dashboard)/includes/iconComponent";
 
@@ -58,6 +59,10 @@ const UserPage: React.FC = () => {
   const [pagination, setPagination] = useState<ApiResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [roles, setRoles] = useState<any[]>([]);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedRole, setSelectedRole] = useState<string>("");
+  const [showAssignModal, setShowAssignModal] = useState(false);
 
   /** --------------------------
    * Load users from API
@@ -79,6 +84,22 @@ const UserPage: React.FC = () => {
     loadUsers();
   }, []);
 
+  /** --------------------------
+   * Load roles for assignment
+   * -------------------------- */
+  const loadRoles = async () => {
+    try {
+      const response = await fetchRoles(1, 100); // Large per_page to get all roles
+      setRoles(response.data);
+    } catch (err) {
+      console.error('Error fetching roles:', err);
+    }
+  };
+
+  useEffect(() => {
+    loadRoles();
+  }, []);
+
   const handlePageChange = async (page: number) => {
     try {
       setLoading(true);
@@ -92,41 +113,62 @@ const UserPage: React.FC = () => {
     }
   };
 
+  const handleAssignRole = (user: User) => {
+    setSelectedUser(user);
+    setSelectedRole("");
+    setShowAssignModal(true);
+  };
+
+  const handleAssignRoleSubmit = async () => {
+    if (!selectedUser || !selectedRole) return;
+
+    try {
+      await assignRole(selectedUser.id, selectedRole);
+      setShowAssignModal(false);
+      // Reload users to reflect changes
+      const response = await fetchUsers(pagination?.current_page || 1, pagination?.per_page || 15);
+      setUsers(response.data);
+      setPagination(response);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred while assigning role');
+    }
+  };
+
   if (loading) {
-    return <div className="p-6 bg-white rounded-lg shadow">Loading...</div>;
+    return <div className="p-6 bg-white rounded-lg shadow border border-gray-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">Loading...</div>;
   }
 
   if (error) {
-    return <div className="p-6 bg-white rounded-lg shadow text-red-500">Error: {error}</div>;
+    return <div className="p-6 bg-white rounded-lg shadow border border-gray-200 text-red-500 dark:border-slate-700 dark:bg-slate-900">Error: {error}</div>;
   }
 
   return (
-    <div className="p-6 bg-white rounded-lg shadow">
+    <div className="p-6 bg-white rounded-lg shadow border border-gray-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">User Management</h1>
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-slate-100">User Management</h1>
       </div>
 
       {/* User Table */}
       <div className="overflow-x-auto">
-        <table className="min-w-full bg-white border border-gray-200 rounded-lg">
+        <table className="min-w-full bg-white border border-gray-200 rounded-lg dark:bg-slate-900 dark:border-slate-700">
           <thead>
-            <tr className="bg-gray-50">
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Roles</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            <tr className="bg-gray-50 dark:bg-slate-800">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-slate-300">ID</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-slate-300">Name</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-slate-300">Email</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-slate-300">Phone</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-slate-300">Roles</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-slate-300">Actions</th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-white divide-y divide-gray-200 dark:bg-slate-900 dark:divide-slate-700">
             {users.map((user) => (
-              <tr key={user.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{user.id}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{user.name}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.email}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.phone}</td>
-                <td className="px-6 py-4 text-sm text-gray-500">
+              <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-slate-800">
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-slate-100">{user.id}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-slate-100">{user.name}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-slate-300">{user.email}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-slate-300">{user.phone}</td>
+                <td className="px-6 py-4 text-sm text-gray-500 dark:text-slate-300">
                   {user.roles.map(role => role.name).join(', ')}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
@@ -135,6 +177,9 @@ const UserPage: React.FC = () => {
                   </IconButton>
                   <IconButton onClick={() => {/* handle delete */}} label="Delete">
                     <IconComponent name="delete" className="h-4 w-4 text-red-600" />
+                  </IconButton>
+                  <IconButton onClick={() => handleAssignRole(user)} label="Assign Role">
+                    <IconComponent name="user" className="h-4 w-4 text-green-600" />
                   </IconButton>
                 </td>
               </tr>
@@ -155,11 +200,49 @@ const UserPage: React.FC = () => {
                 className={`px-3 py-2 border rounded ${
                   link.active
                     ? 'bg-blue-600 text-white'
-                    : 'bg-white text-gray-700 hover:bg-gray-50'
-                } ${!link.url ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    : 'bg-white text-gray-700 hover:bg-gray-50 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700'
+                } ${!link.url ? 'opacity-50 cursor-not-allowed' : ''} dark:border-slate-700`}
                 dangerouslySetInnerHTML={{ __html: link.label }}
               />
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Assign Role Modal */}
+      {showAssignModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full dark:bg-black/70" id="my-modal">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-slate-900 dark:border-slate-700">
+            <div className="mt-3 text-center">
+              <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-slate-100">Assign Role to {selectedUser?.name}</h3>
+              <div className="mt-2 px-7 py-3">
+                <select
+                  value={selectedRole || ''}
+                  onChange={(e) => setSelectedRole(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-md dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                >
+                  <option value="">Select a role</option>
+                  {roles.map((role) => (
+                    <option key={role.id} value={role.name}>{role.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="items-center px-4 py-3">
+                <button
+                  onClick={handleAssignRoleSubmit}
+                  className="px-4 py-2 bg-blue-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                  disabled={!selectedRole}
+                >
+                  Assign Role
+                </button>
+                <button
+                  onClick={() => setShowAssignModal(false)}
+                  className="mt-3 px-4 py-2 bg-gray-300 text-gray-900 text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

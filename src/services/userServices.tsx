@@ -24,3 +24,8 @@ export const deleteUser = async (userId: number) => {
   const response = await api.delete(`/users/${userId}`);
   return response.data;
 };
+
+export const assignRole = async (userId: number, role: string) => {
+  const response = await api.post(`/users/${userId}/assign-role`, { role: role });
+  return response.data;
+};

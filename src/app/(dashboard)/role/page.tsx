@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { fetchRoles } from "src/services/roleServices";
+import { fetchRoles, deleteRole } from "src/services/roleServices";
+import { fetchAllPermissions } from "src/services/permissionServices";
 import IconButton from "src/app/(dashboard)/includes/iconBtn";
 import IconComponent from "src/app/(dashboard)/includes/iconComponent";
 import Swal from 'sweetalert2';
@@ -61,6 +62,17 @@ const RolePage: React.FC = () => {
   const [perPage, setPerPage] = useState(10);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const updateRoles = (roleData: ApiRole[]) => {
+    // Transform permissions to array of ids
+    const transformedRoles: Role[] = roleData.map(role => ({
+      ...role,
+      permissions: role.permissions.map(p => p.id)
+    }));
+
+    setRoles(transformedRoles);
+  };
+
   /** --------------------------
   * Load roles from API
   * -------------------------- */
@@ -68,30 +80,29 @@ const RolePage: React.FC = () => {
     const loadRoles = async () => {
       const res = await fetchRoles();
       const roleData: ApiRole[] = res.data;
-
-      // Transform permissions to array of ids
-      const transformedRoles: Role[] = roleData.map(role => ({
-        ...role,
-        permissions: role.permissions.map(p => p.id)
-      }));
-
-      setRoles(transformedRoles);
-
-      /** collect all permissions (unique) for the modal */
-      const allPermissions: Permission[] = [];
-      roleData.forEach((role) => {
-        role.permissions.forEach((p) => {
-          if (!allPermissions.find((ap) => ap.id === p.id)) {
-            allPermissions.push({ id: p.id, name: p.name });
-          }
-        });
-      });
-
-      setPermissions(allPermissions);
+      updateRoles(roleData);
     };
 
     loadRoles();
+  }, [perPage]);
+
+  /** --------------------------
+  * Load permissions from API
+  * -------------------------- */
+  useEffect(() => {
+    const loadPermissions = async () => {
+      try {
+        const permData = await fetchAllPermissions();
+        setPermissions(permData);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An error occurred while loading permissions');
+      }
+    };
+
+    loadPermissions();
   }, []);
+
+
 
   const handleAddRole = async () => {
     const newId = roles.length + 1;
@@ -100,17 +111,17 @@ const RolePage: React.FC = () => {
       name: roleName,
       permissions: selectedPermissions,
     };
-    setSelectedPermissions([]);
     try {
       const response = await api.post('/roles', role);
       setShowAddModal(false);
       setRoleName('');
+      setSelectedPermissions([]);
       // Refresh the roles list
       const updatedResponse = await fetchRoles(pagination?.current_page || 1, perPage);
-      setRoles(updatedResponse.data);
+      updateRoles(updatedResponse.data);
       setPagination(updatedResponse);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred while adding permission');
+      setError(err instanceof Error ? err.message : 'An error occurred while adding role');
     }
   };
 
@@ -120,12 +131,25 @@ const RolePage: React.FC = () => {
     setSelectedPermissions(role.permissions);
   };
 
-  const handleUpdateRole = () => {
+  const handleUpdateRole = async () => {
     if (editingRole) {
-      setRoles(roles.map(r => r.id === editingRole.id ? { ...r, name: roleName, permissions: selectedPermissions } : r));
-      setEditingRole(null);
-      setRoleName('');
-      setSelectedPermissions([]);
+      const updatedRole = {
+        ...editingRole,
+        name: roleName,
+        permissions: selectedPermissions,
+      };
+      try {
+        const response = await api.put(`/roles/${editingRole.id}`, updatedRole);
+        setEditingRole(null);
+        setRoleName('');
+        setSelectedPermissions([]);
+        // Refresh the roles list
+        const updatedResponse = await fetchRoles(pagination?.current_page || 1, perPage);
+        updateRoles(updatedResponse.data);
+        setPagination(updatedResponse);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An error occurred while updating role');
+      }
     }
   };
 
@@ -141,12 +165,22 @@ const RolePage: React.FC = () => {
     });
 
     if (result.isConfirmed) {
-      setRoles(roles.filter(r => r.id !== id));
-      Swal.fire(
-        'Deleted!',
-        'The role has been deleted.',
-        'success'
-      );
+      try {
+        await deleteRole(id);
+        setRoles(roles.filter(r => r.id !== id));
+        Swal.fire(
+          'Deleted!',
+          'The role has been deleted.',
+          'success'
+        );
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An error occurred while deleting role');
+        Swal.fire(
+          'Error!',
+          'Failed to delete the role.',
+          'error'
+        );
+      }
     }
   };
 
@@ -162,12 +196,12 @@ const RolePage: React.FC = () => {
   // const activePermissions = permissions.filter(p => p.active);
 
   return (
-    <div className="p-6 bg-white rounded-lg shadow">
+    <div className="p-6 bg-white rounded-lg shadow border border-gray-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Role Management</h1>
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-slate-100">Role Management</h1>
         <button
           onClick={() => setShowAddModal(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-200"
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-200 dark:bg-blue-500 dark:hover:bg-blue-600"
         >
           Add Role
         </button>
@@ -175,19 +209,19 @@ const RolePage: React.FC = () => {
 
       {/* Role Table */}
       <div className="overflow-x-auto">
-        <table className="min-w-full bg-white border border-gray-200 rounded-lg">
+        <table className="min-w-full bg-white border border-gray-200 rounded-lg dark:bg-slate-900 dark:border-slate-700">
           <thead>
-            <tr className="bg-gray-50">
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Permissions</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            <tr className="bg-gray-50 dark:bg-slate-800">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-slate-300">Name</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-slate-300">Permissions</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-slate-300">Actions</th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-white divide-y divide-gray-200 dark:bg-slate-900 dark:divide-slate-700">
             {roles.map((role) => (
-              <tr key={role.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{role.name}</td>
-                <td className="px-6 py-4 text-sm text-gray-500">
+              <tr key={role.id} className="hover:bg-gray-50 dark:hover:bg-slate-800">
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-slate-100">{role.name}</td>
+                <td className="px-6 py-4 text-sm text-gray-500 dark:text-slate-300">
                   {role.permissions.map(per => permissions.find(p => p.id === per)?.name).join(', ')}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
@@ -206,10 +240,10 @@ const RolePage: React.FC = () => {
 
       {/* Add/Edit Modal */}
       {(showAddModal || editingRole) && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-2xl shadow-lg rounded-md bg-white">
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 dark:bg-black/70">
+          <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-2xl shadow-lg rounded-md bg-white dark:bg-slate-900 dark:border-slate-700">
             <div className="mt-3">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
+              <h3 className="text-lg font-medium text-gray-900 mb-4 dark:text-slate-100">
                 {editingRole ? 'Edit Role' : 'Add New Role'}
               </h3>
               <div className="mb-4">
@@ -218,17 +252,17 @@ const RolePage: React.FC = () => {
                   placeholder="Role Name"
                   value={roleName}
                   onChange={(e) => setRoleName(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-400"
                 />
               </div>
               <div className="mb-4">
-                <h4 className="text-md font-medium text-gray-700 mb-2">Select Permissions</h4>
+                <h4 className="text-md font-medium text-gray-700 mb-2 dark:text-slate-200">Select Permissions</h4>
                 <div className="grid grid-cols-4 gap-4">
                   {permissions.map((permission) => (
-                    <label key={permission.id} className="flex items-center">
+                    <label key={permission.id} className="flex items-center dark:text-slate-200">
                       <input
                         type="checkbox"
-                        checked={selectedPermissions.some(p => p=== permission.id)}
+                        checked={selectedPermissions.some(p => p === permission.id)}
                         onChange={() => togglePermission(permission)}
                         className="mr-2"
                       />
@@ -246,7 +280,7 @@ const RolePage: React.FC = () => {
                       handleAddRole();
                     }
                   }}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-200"
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-200 dark:bg-blue-500 dark:hover:bg-blue-600"
                 >
                   {editingRole ? 'Update' : 'Create Role'}
                 </button>
@@ -257,7 +291,7 @@ const RolePage: React.FC = () => {
                     setRoleName('');
                     setSelectedPermissions([]);
                   }}
-                  className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition duration-200"
+                  className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition duration-200 dark:bg-slate-700 dark:hover:bg-slate-600"
                 >
                   Cancel
                 </button>

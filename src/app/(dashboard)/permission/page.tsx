@@ -46,7 +46,7 @@ const PermissionPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [perPage, setPerPage] = useState(10);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [newPermission, setNewPermission] = useState({ name: '', guard_name: 'web' });
+  const [newPermission, setNewPermission] = useState({ name: ''});
   const [editingPermission, setEditingPermission] = useState<Permission | null>(null);
 
   useEffect(() => {
@@ -104,7 +104,7 @@ const PermissionPage: React.FC = () => {
     try {
       const response = await api.post('/permissions', newPermission);
       setShowAddModal(false);
-      setNewPermission({ name: '', guard_name: 'web' });
+      setNewPermission({ name: ''});
       // Refresh the permissions list
       const updatedResponse = await permissions(pagination?.current_page || 1, perPage);
       setPermissionsData(updatedResponse.data);
@@ -116,7 +116,7 @@ const PermissionPage: React.FC = () => {
 
   const handleEditPermission = (permission: Permission) => {
     setEditingPermission(permission);
-    setNewPermission({ name: permission.name, guard_name: permission.guard_name });
+    setNewPermission({ name: permission.name });
     setShowAddModal(true);
   };
 
@@ -160,7 +160,7 @@ const PermissionPage: React.FC = () => {
         await api.put(`/permissions/${editingPermission.id}`, newPermission);
         setShowAddModal(false);
         setEditingPermission(null);
-        setNewPermission({ name: '', guard_name: 'web' });
+        setNewPermission({ name: ''});
         // Refresh the permissions list
         const updatedResponse = await permissions(pagination?.current_page || 1, perPage);
         setPermissionsData(updatedResponse.data);
@@ -282,15 +282,6 @@ const PermissionPage: React.FC = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-              <div className="mb-4">
-                <input
-                  type="text"
-                  placeholder="Guard Name"
-                  value={newPermission.guard_name}
-                  onChange={(e) => setNewPermission({ ...newPermission, guard_name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
               <div className="flex items-center px-4 py-3 space-x-4">
                 <button
                   onClick={() => {
@@ -308,7 +299,7 @@ const PermissionPage: React.FC = () => {
                   onClick={() => {
                     setShowAddModal(false);
                     setEditingPermission(null);
-                    setNewPermission({ name: '', guard_name: 'web' });
+                    setNewPermission({ name: ''});
                   }}
                   className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition duration-200"
                 >

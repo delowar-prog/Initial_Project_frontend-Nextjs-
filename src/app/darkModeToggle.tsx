@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 
-export default function DarkModeToggle(){
+export default function DarkModeToggle() {
   const [dark, setDark] = useState<boolean>(false);
 
   useEffect(() => {
@@ -22,10 +22,9 @@ export default function DarkModeToggle(){
   return (
     <button
       onClick={toggle}
-      className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm hover:bg-slate-100 
-                 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+      className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
     >
-      {dark ? "🌙 Dark" : "☀️ Light"}
+      {dark ? "Dark mode" : "Light mode"}
     </button>
   );
 }

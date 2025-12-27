@@ -1,7 +1,9 @@
 "use client";
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { getUser, logout } from "../services/authService";
 import { useRouter, usePathname } from "next/navigation";
+import axios from "axios";
+import { api } from "src/lib/api";
 
 interface User {
   id: number;
@@ -9,15 +11,27 @@ interface User {
   email: string;
 }
 
+interface MeResponse extends User {
+  roles: string[];
+  permissions: string[];
+}
+
 interface AuthContextType {
   user: User | null;
   setUser: React.Dispatch<React.SetStateAction<User | null>>;
+  me: MeResponse | null;
+  loading: boolean;
+  can: (permission: string) => boolean;
+  canAny: (permissions: string[]) => boolean;
   handleLogout: () => void;
 }
+
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const [me, setMe] = useState<MeResponse | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
   const [user, setUser] = useState<User | null>(null);
   const router = useRouter();
   const pathname = usePathname();
@@ -55,8 +69,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     router.push("/login");
   };
 
+  useEffect(() => {
+    (async () => {
+      try {
+         const res = await api.get<MeResponse>("/me"); // token/cookie configured
+        setMe(res.data);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  // 🚦 permission helpers
+  const permissionSet = useMemo(
+    () => new Set(me?.permissions ?? []),
+    [me]
+  );
+  const can = (permission: string): boolean =>
+    permissionSet.has(permission);
+
+  const canAny = (permissions: string[]): boolean =>
+    permissions.some((p) => permissionSet.has(p));
+
   return (
-    <AuthContext.Provider value={{ user, setUser, handleLogout }}>
+    <AuthContext.Provider value={{user, setUser, me, loading, can, canAny, handleLogout, }}>
       {children}
     </AuthContext.Provider>
   );

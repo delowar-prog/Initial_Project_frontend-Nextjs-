@@ -1,7 +1,10 @@
+"use client";
+import { useAuth } from "src/context/authContext";
 import IconComponent from "./iconComponent";
 
 type OpenState = {
   userMgmt: boolean;
+  config: boolean;
   institutions: boolean;
   academics: boolean;
   documents: boolean;
@@ -30,6 +33,7 @@ type IconName =
   | "panel-right-open";
 
 export default function Sidebar({ open, setOpen, onNavigate, isCollapsed }: SidebarProps) {
+  const { loading, can, canAny } = useAuth();
   const LinkItem: React.FC<{
     icon: IconName;
     label: string;
@@ -97,6 +101,15 @@ export default function Sidebar({ open, setOpen, onNavigate, isCollapsed }: Side
           <LinkItem icon="dot" label="Users" href="/user" />
           <LinkItem icon="dot" label="Permissions" href="/permission" />
           <LinkItem icon="dot" label="Roles" href="/role" />
+        </Group>
+
+        <Group title="Configuration" icon="panel-left-close" isOpenKey="config">
+          {can("view-categories",) && (
+            <LinkItem icon="dot" label="Categories" href="/category" />
+          )}
+          {can("view-authors") && (
+            <LinkItem icon="dot" label="Authors" href="/author" />
+          )}
         </Group>
 
         <LinkItem icon="id" label="Certificate Applications" href="#" />
