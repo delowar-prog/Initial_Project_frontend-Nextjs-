@@ -137,14 +137,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           )}
 
           {/* MAIN (desktop) */}
-          <main className="min-h-[calc(100dvh-64px)] p-2 md:p-6 ">
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">{children}</div>
+          <main className="min-h-[calc(100dvh-64px)] p-2 md:p-6 rounded-2xl bg-white shadow-sm dark:bg-slate-900 dark:text-slate-100">
+            {children}
           </main>
         </div>
 
         {/* MAIN (mobile fallback grid-cols-1) */}
-        <main className="md:hidden min-h-[calc(100dvh-64px)] py-6">
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">{children}</div>
+        <main className="md:hidden min-h-[calc(100dvh-64px)] py-6 rounded-2xl bg-white shadow-sm dark:bg-slate-900 dark:text-slate-100">
+          {children}
         </main>
       </div>
 
@@ -173,7 +173,7 @@ function MobileDrawer({ open, onClose, children }: MobileDrawerProps) {
     <div className={`fixed inset-0 z-50 md:hidden ${open ? "" : "pointer-events-none"}`}>
       <div className={`absolute inset-0 bg-black/30 transition-opacity ${open ? "opacity-100" : "opacity-0"}`} onClick={onClose} />
       <div
-        className={`absolute left-0 top-0 h-full w-72 -translate-x-full bg-white p-3 shadow-xl transition-transform ${open ? "translate-x-0" : ""
+        className={`absolute left-0 top-0 h-full w-72 -translate-x-full bg-white p-3 shadow-xl transition-transform dark:bg-slate-900 dark:text-slate-100 ${open ? "translate-x-0" : ""
           }`}
         role="dialog"
         aria-modal="true"
