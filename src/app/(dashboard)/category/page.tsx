@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { fetchCategories, createCategory, updateCategory, deleteCategory } from "src/services/categoryServices";
 import IconButton from "src/app/(dashboard)/includes/iconBtn";
 import IconComponent from "src/app/(dashboard)/includes/iconComponent";
@@ -13,6 +13,13 @@ interface Category {
   description: string;
 }
 
+interface PaginationLink {
+  url: string | null;
+  label: string;
+  page: number | null;
+  active: boolean;
+}
+
 interface ApiResponse {
   current_page: number;
   data: Category[];
@@ -20,7 +27,7 @@ interface ApiResponse {
   from: number;
   last_page: number;
   last_page_url: string;
-  links: any[];
+  links: PaginationLink[];
   next_page_url: string | null;
   path: string;
   per_page: number;
@@ -38,15 +45,32 @@ const CategoryPage: React.FC = () => {
   const [categoryDescription, setCategoryDescription] = useState('');
   const [pagination, setPagination] = useState<ApiResponse | null>(null);
   const [perPage, setPerPage] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const normalizeResponse = (response: ApiResponse | Category[]) => {
+    if (Array.isArray(response)) {
+      return { items: response, page: null as ApiResponse | null };
+    }
+    return { items: response?.data ?? [], page: response ?? null };
+  };
+
+  const applyResponse = (response: ApiResponse | Category[], fallbackPage: number) => {
+    const normalized = normalizeResponse(response);
+    setCategories(normalized.items);
+    setPagination(normalized.page);
+    setCurrentPage(normalized.page?.current_page ?? fallbackPage);
+  };
 
   useEffect(() => {
     const loadCategories = async () => {
       try {
         setLoading(true);
-        const res = await fetchCategories();
-        setCategories(res);
+        setError(null);
+        const response = await fetchCategories(1, perPage);
+        applyResponse(response, 1);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred while loading categories');
       } finally {
@@ -55,7 +79,39 @@ const CategoryPage: React.FC = () => {
     };
 
     loadCategories();
-  }, []);
+  }, [perPage]);
+
+  const handlePageChange = async (page: number) => {
+    if (!pagination) {
+      setCurrentPage(page);
+      return;
+    }
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await fetchCategories(page, perPage);
+      applyResponse(response, page);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred while loading categories');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePerPageChange = async (newPerPage: number) => {
+    setPerPage(newPerPage);
+    setCurrentPage(1);
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await fetchCategories(1, newPerPage);
+      applyResponse(response, 1);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred while loading categories');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleAddCategory = async () => {
     try {
@@ -64,8 +120,9 @@ const CategoryPage: React.FC = () => {
       setCategoryName('');
       setCategoryDescription('');
       // Refresh the categories list
-      const updatedResponse = await fetchCategories();
-      setCategories(updatedResponse);
+      const targetPage = pagination?.current_page ?? currentPage ?? 1;
+      const updatedResponse = await fetchCategories(targetPage, perPage);
+      applyResponse(updatedResponse, targetPage);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred while adding category');
     }
@@ -85,8 +142,9 @@ const CategoryPage: React.FC = () => {
         setCategoryName('');
         setCategoryDescription('');
         // Refresh the categories list
-        const updatedResponse = await fetchCategories();
-        setCategories(updatedResponse);
+        const targetPage = pagination?.current_page ?? currentPage ?? 1;
+        const updatedResponse = await fetchCategories(targetPage, perPage);
+        applyResponse(updatedResponse, targetPage);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred while updating category');
       }
@@ -107,7 +165,9 @@ const CategoryPage: React.FC = () => {
     if (result.isConfirmed) {
       try {
         await deleteCategory(id);
-        setCategories(categories.filter(c => c.id !== id));
+        const targetPage = pagination?.current_page ?? currentPage ?? 1;
+        const updatedResponse = await fetchCategories(targetPage, perPage);
+        applyResponse(updatedResponse, targetPage);
         Swal.fire(
           'Deleted!',
           'The category has been deleted.',
@@ -124,22 +184,146 @@ const CategoryPage: React.FC = () => {
     }
   };
 
+  const filteredCategories = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase();
+    if (!query) return categories;
+    return categories.filter((category) => {
+      const name = category.name?.toLowerCase() ?? "";
+      const description = category.description?.toLowerCase() ?? "";
+      return name.includes(query) || description.includes(query);
+    });
+  }, [categories, searchTerm]);
+
+  const hasServerPagination = Boolean(pagination && pagination.links?.length);
+  const clientTotalPages = useMemo(() => {
+    return Math.ceil(filteredCategories.length / perPage);
+  }, [filteredCategories.length, perPage]);
+  const totalPages = hasServerPagination ? (pagination?.last_page ?? 0) : clientTotalPages;
+  const activePage = hasServerPagination ? (pagination?.current_page ?? currentPage) : currentPage;
+
+  useEffect(() => {
+    if (hasServerPagination) return;
+    if (searchTerm.trim()) {
+      setCurrentPage(1);
+    }
+  }, [hasServerPagination, searchTerm]);
+
+  useEffect(() => {
+    if (hasServerPagination) return;
+    if (clientTotalPages > 0 && currentPage > clientTotalPages) {
+      setCurrentPage(clientTotalPages);
+    }
+  }, [hasServerPagination, clientTotalPages, currentPage]);
+
+  const displayedCategories = useMemo(() => {
+    if (hasServerPagination) return filteredCategories;
+    const start = (currentPage - 1) * perPage;
+    return filteredCategories.slice(start, start + perPage);
+  }, [filteredCategories, hasServerPagination, currentPage, perPage]);
+
+  const paginationLinks = useMemo(() => {
+    if (totalPages <= 1) return [];
+    const pages = new Set<number>();
+    const addRange = (start: number, end: number) => {
+      for (let i = start; i <= end; i += 1) {
+        if (i >= 1 && i <= totalPages) pages.add(i);
+      }
+    };
+    addRange(1, 3);
+    addRange(totalPages - 2, totalPages);
+    addRange(activePage - 1, activePage + 1);
+    const sorted = Array.from(pages).sort((a, b) => a - b);
+    const items: Array<{
+      type: "page" | "ellipsis" | "prev" | "next";
+      label: string;
+      page: number | null;
+      active?: boolean;
+      disabled?: boolean;
+    }> = [];
+    items.push({
+      type: "prev",
+      label: "Previous",
+      page: activePage > 1 ? activePage - 1 : null,
+      disabled: activePage <= 1,
+    });
+    let last = 0;
+    for (const page of sorted) {
+      if (last && page - last > 1) {
+        items.push({ type: "ellipsis", label: "...", page: null });
+      }
+      items.push({
+        type: "page",
+        label: String(page),
+        page,
+        active: page === activePage,
+      });
+      last = page;
+    }
+    items.push({
+      type: "next",
+      label: "Next",
+      page: activePage < totalPages ? activePage + 1 : null,
+      disabled: activePage >= totalPages,
+    });
+    return items;
+  }, [totalPages, activePage]);
+
+  const shouldShowPagination = totalPages > 1;
+
+  if (loading) {
+    return <div className="p-6 bg-white rounded-lg shadow border border-gray-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">Loading...</div>;
+  }
+
+  if (error) {
+    return <div className="p-6 bg-white rounded-lg shadow border border-gray-200 text-red-500 dark:border-slate-700 dark:bg-slate-900">Error: {error}</div>;
+  }
+
   return (
     <div className="p-6 bg-white rounded-lg shadow border border-gray-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-slate-100">Category Management</h1>
-        {can("category.create") && (
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-200 dark:bg-blue-500 dark:hover:bg-blue-600"
-          >
-            Add Category
-          </button>
-        )}
+      <div className="mb-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-gray-800 dark:text-slate-100">Category Management</h1>
+          {can("category.create") && (
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-200 dark:bg-blue-500 dark:hover:bg-blue-600"
+            >
+              Add Category
+            </button>
+          )}
+        </div>
+        <div className="mt-4 flex items-center justify-between gap-4">
+          <div className="flex items-center">
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search name, description"
+              aria-label="Search categories"
+              className="w-64 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-400"
+            />
+          </div>
+          <div className="flex items-center">
+            <label htmlFor="per-page" className="text-sm text-gray-700 mr-2 dark:text-slate-300">Show:</label>
+            <select
+              id="per-page"
+              value={perPage}
+              onChange={(e) => handlePerPageChange(Number(e.target.value))}
+              className="px-2 py-1 border border-gray-300 rounded text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+            >
+              <option value={10}>10</option>
+              <option value={15}>15</option>
+              <option value={20}>20</option>
+              <option value={30}>30</option>
+              <option value={50}>50</option>
+            </select>
+            <label className="text-sm text-gray-700 ml-1 dark:text-slate-300">entries</label>
+          </div>
+        </div>
       </div>
       {/* Category Table */}
       <div className="overflow-x-auto">
-        <table className="min-w-full bg-white border border-gray-200 rounded-lg dark:bg-slate-900 dark:border-slate-700">
+        <table className="min-w-full bg-white border border-gray-200 rounded-t-lg dark:bg-slate-900 dark:border-slate-700">
           <thead>
             <tr className="bg-gray-50 dark:bg-slate-800">
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-slate-300">Name</th>
@@ -148,7 +332,7 @@ const CategoryPage: React.FC = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200 dark:bg-slate-900 dark:divide-slate-700">
-            {categories.map((category) => (
+            {displayedCategories.map((category) => (
               <tr key={category.id} className="hover:bg-gray-50 dark:hover:bg-slate-800">
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-slate-100">{category.name}</td>
                 <td className="px-6 py-4 text-sm text-gray-500 dark:text-slate-300">{category.description}</td>
@@ -162,9 +346,56 @@ const CategoryPage: React.FC = () => {
                 </td>
               </tr>
             ))}
+            {displayedCategories.length === 0 && (
+              <tr>
+                <td colSpan={3} className="px-6 py-6 text-center text-sm text-gray-500 dark:text-slate-300">
+                  No categories found.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {shouldShowPagination && (
+        <div className="flex justify-between items-center mt-4 px-6 py-3 bg-gray-50 border-t border-gray-200 rounded-b-lg dark:bg-slate-800 dark:border-slate-700">
+          <div className="text-sm text-gray-700 dark:text-slate-300">
+            {searchTerm.trim()
+              ? <>Showing {displayedCategories.length} results on this page</>
+              : <>
+                  Showing {hasServerPagination ? pagination?.from ?? 0 : (filteredCategories.length ? (activePage - 1) * perPage + 1 : 0)}
+                  {" "}to{" "}
+                  {hasServerPagination ? pagination?.to ?? 0 : Math.min(activePage * perPage, filteredCategories.length)}
+                  {" "}of{" "}
+                  {hasServerPagination ? pagination?.total ?? 0 : filteredCategories.length}
+                  {" "}entries
+                </>
+            }
+          </div>
+          <div className="flex justify-center space-x-2">
+            {paginationLinks.map((link, index) => (
+              link.type === "ellipsis" ? (
+                <span key={`ellipsis-${index}`} className="px-2 py-2 text-sm text-gray-500 dark:text-slate-400">
+                  {link.label}
+                </span>
+              ) : (
+                <button
+                  key={index}
+                  onClick={() => link.page && handlePageChange(link.page)}
+                  disabled={link.page === null || link.active || link.disabled}
+                  className={`px-3 py-2 text-sm font-medium rounded ${link.active
+                      ? 'bg-blue-500 text-white dark:bg-blue-500'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700'
+                    } ${(link.page === null || link.disabled) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
+                >
+                  {link.label}
+                </button>
+              )
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Add/Edit Modal */}
       {(showAddModal || editingCategory) && (

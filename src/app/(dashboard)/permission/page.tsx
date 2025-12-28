@@ -173,21 +173,21 @@ const PermissionPage: React.FC = () => {
 
 
   console.log(permissionsData)
-  if (loading) return <div className="p-6">Loading permissions...</div>;
-  if (error) return <div className="p-6 text-red-600">Error: {error}</div>;
+  if (loading) return <div className="p-6 dark:text-slate-200">Loading permissions...</div>;
+  if (error) return <div className="p-6 text-red-600 dark:text-red-400">Error: {error}</div>;
 
   return (
-    <div className="p-6 bg-white rounded-lg shadow">
+    <div className="p-6 bg-white rounded-lg shadow dark:bg-slate-900 dark:text-slate-100">
       <div className="mb-6 flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-800">Permission Management</h1>
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-slate-100">Permission Management</h1>
         <div className="flex items-center space-x-4">
           <div className="flex items-center">
-            <label htmlFor="per-page" className="text-sm text-gray-700 mr-2">Show:</label>
+            <label htmlFor="per-page" className="text-sm text-gray-700 mr-2 dark:text-slate-300">Show:</label>
             <select
               id="per-page"
               value={perPage}
               onChange={(e) => handlePerPageChange(Number(e.target.value))}
-              className="px-2 py-1 border border-gray-300 rounded text-sm"
+              className="px-2 py-1 border border-gray-300 rounded text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
             >
               <option value={10}>10</option>
               <option value={15}>15</option>
@@ -195,11 +195,11 @@ const PermissionPage: React.FC = () => {
               <option value={30}>30</option>
               <option value={50}>50</option>
             </select>
-            <label className="text-sm text-gray-700 ml-1">entries</label>
+            <label className="text-sm text-gray-700 ml-1 dark:text-slate-300">entries</label>
           </div>
           <button
             onClick={() => setShowAddModal(true)}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm font-medium"
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm font-medium dark:bg-blue-500 dark:hover:bg-blue-600"
           >
             Add Permission
           </button>
@@ -208,25 +208,25 @@ const PermissionPage: React.FC = () => {
 
       {/* Permission Table */}
       <div className="overflow-x-auto">
-        <table className="min-w-full bg-white border border-gray-200 rounded-t-lg">
+        <table className="min-w-full bg-white border border-gray-200 rounded-t-lg dark:bg-slate-900 dark:border-slate-700">
           <thead>
-            <tr className="bg-gray-50">
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Guard Name</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created At</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Updated At</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            <tr className="bg-gray-50 dark:bg-slate-800">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-slate-300">ID</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-slate-300">Name</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-slate-300">Guard Name</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-slate-300">Created At</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-slate-300">Updated At</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-slate-300">Actions</th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-white divide-y divide-gray-200 dark:bg-slate-900 dark:divide-slate-700">
             {permissionsData.map((permission) => (
-              <tr key={permission.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{permission.id}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{permission.name}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{permission.guard_name}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(permission.created_at).toLocaleString()}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(permission.updated_at).toLocaleString()}</td>
+              <tr key={permission.id} className="hover:bg-gray-50 dark:hover:bg-slate-800">
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-slate-100">{permission.id}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-slate-300">{permission.name}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-slate-300">{permission.guard_name}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-slate-300">{new Date(permission.created_at).toLocaleString()}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-slate-300">{new Date(permission.updated_at).toLocaleString()}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                   <IconButton onClick={() => handleEditPermission(permission)} label="Edit">
                     <IconComponent name="edit" className="h-4 w-4 text-indigo-600" />
@@ -239,8 +239,8 @@ const PermissionPage: React.FC = () => {
             ))}
           </tbody>
         </table>
-        <div className="flex justify-between items-center mt-4 px-6 py-3 bg-gray-50 border-t border-gray-200 rounded-b-lg">
-          <div className="text-sm text-gray-700">
+        <div className="flex justify-between items-center mt-4 px-6 py-3 bg-gray-50 border-t border-gray-200 rounded-b-lg dark:bg-slate-800 dark:border-slate-700">
+          <div className="text-sm text-gray-700 dark:text-slate-300">
             {pagination && (
               <>
                 Showing {pagination.from} to {pagination.to} of {pagination.total} entries
@@ -254,8 +254,8 @@ const PermissionPage: React.FC = () => {
                 onClick={() => link.page && handlePageChange(link.page)}
                 disabled={link.page === null || link.active}
                 className={`px-3 py-2 text-sm font-medium rounded ${link.active
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    ? 'bg-blue-500 text-white dark:bg-blue-500'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700'
                   } ${link.page === null ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
               >
                 {link.label}
@@ -267,10 +267,10 @@ const PermissionPage: React.FC = () => {
       
       {/* Add/Edit Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-md shadow-lg rounded-md bg-white">
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 dark:bg-black/70">
+          <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-md shadow-lg rounded-md bg-white dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100">
             <div className="mt-3">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
+              <h3 className="text-lg font-medium text-gray-900 mb-4 dark:text-slate-100">
                 {editingPermission ? 'Edit Permission' : 'Add New Permission'}
               </h3>
               <div className="mb-4">
@@ -279,7 +279,7 @@ const PermissionPage: React.FC = () => {
                   placeholder="Permission Name"
                   value={newPermission.name}
                   onChange={(e) => setNewPermission({ ...newPermission, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-400"
                 />
               </div>
               <div className="flex items-center px-4 py-3 space-x-4">
@@ -291,7 +291,7 @@ const PermissionPage: React.FC = () => {
                       handleAddPermission();
                     }
                   }}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-200"
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-200 dark:bg-blue-500 dark:hover:bg-blue-600"
                 >
                   {editingPermission ? 'Update' : 'Create Permission'}
                 </button>
@@ -301,7 +301,7 @@ const PermissionPage: React.FC = () => {
                     setEditingPermission(null);
                     setNewPermission({ name: ''});
                   }}
-                  className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition duration-200"
+                  className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition duration-200 dark:bg-slate-700 dark:hover:bg-slate-600"
                 >
                   Cancel
                 </button>

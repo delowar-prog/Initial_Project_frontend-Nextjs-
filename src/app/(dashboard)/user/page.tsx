@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { fetchUsers, assignRole } from "src/services/userServices";
 import { fetchRoles } from "src/services/roleServices";
 import IconButton from "src/app/(dashboard)/includes/iconBtn";
@@ -59,6 +59,8 @@ const UserPage: React.FC = () => {
   const [pagination, setPagination] = useState<ApiResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [perPage, setPerPage] = useState(10);
+  const [searchTerm, setSearchTerm] = useState("");
   const [roles, setRoles] = useState<any[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [selectedRole, setSelectedRole] = useState<string>("");
@@ -71,7 +73,7 @@ const UserPage: React.FC = () => {
     const loadUsers = async () => {
       try {
         setLoading(true);
-        const response = await fetchUsers(1, 15); // Start with page 1, per_page 15 as in API
+        const response = await fetchUsers(1, perPage);
         setUsers(response.data);
         setPagination(response);
       } catch (err) {
@@ -82,7 +84,7 @@ const UserPage: React.FC = () => {
     };
 
     loadUsers();
-  }, []);
+  }, [perPage]);
 
   /** --------------------------
    * Load roles for assignment
@@ -103,7 +105,21 @@ const UserPage: React.FC = () => {
   const handlePageChange = async (page: number) => {
     try {
       setLoading(true);
-      const response = await fetchUsers(page, pagination?.per_page || 15);
+      const response = await fetchUsers(page, perPage);
+      setUsers(response.data);
+      setPagination(response);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred while fetching users');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePerPageChange = async (newPerPage: number) => {
+    setPerPage(newPerPage);
+    try {
+      setLoading(true);
+      const response = await fetchUsers(1, newPerPage);
       setUsers(response.data);
       setPagination(response);
     } catch (err) {
@@ -126,13 +142,24 @@ const UserPage: React.FC = () => {
       await assignRole(selectedUser.id, selectedRole);
       setShowAssignModal(false);
       // Reload users to reflect changes
-      const response = await fetchUsers(pagination?.current_page || 1, pagination?.per_page || 15);
+      const response = await fetchUsers(pagination?.current_page || 1, perPage);
       setUsers(response.data);
       setPagination(response);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred while assigning role');
     }
   };
+
+  const filteredUsers = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase();
+    if (!query) return users;
+    return users.filter((user) => {
+      const name = user.name?.toLowerCase() ?? "";
+      const email = user.email?.toLowerCase() ?? "";
+      const phone = user.phone?.toLowerCase() ?? "";
+      return name.includes(query) || email.includes(query) || phone.includes(query);
+    });
+  }, [users, searchTerm]);
 
   if (loading) {
     return <div className="p-6 bg-white rounded-lg shadow border border-gray-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">Loading...</div>;
@@ -144,13 +171,41 @@ const UserPage: React.FC = () => {
 
   return (
     <div className="p-6 bg-white rounded-lg shadow border border-gray-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
-      <div className="flex justify-between items-center mb-6">
+      <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-800 dark:text-slate-100">User Management</h1>
+        <div className="mt-4 flex items-center justify-between gap-4">
+          <div className="flex items-center">
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search name, email, phone"
+              aria-label="Search users"
+              className="w-64 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-400"
+            />
+          </div>
+          <div className="flex items-center">
+            <label htmlFor="per-page" className="text-sm text-gray-700 mr-2 dark:text-slate-300">Show:</label>
+            <select
+              id="per-page"
+              value={perPage}
+              onChange={(e) => handlePerPageChange(Number(e.target.value))}
+              className="px-2 py-1 border border-gray-300 rounded text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+            >
+              <option value={10}>10</option>
+              <option value={15}>15</option>
+              <option value={20}>20</option>
+              <option value={30}>30</option>
+              <option value={50}>50</option>
+            </select>
+            <label className="text-sm text-gray-700 ml-1 dark:text-slate-300">entries</label>
+          </div>
+        </div>
       </div>
 
       {/* User Table */}
       <div className="overflow-x-auto">
-        <table className="min-w-full bg-white border border-gray-200 rounded-lg dark:bg-slate-900 dark:border-slate-700">
+        <table className="min-w-full bg-white border border-gray-200 rounded-t-lg dark:bg-slate-900 dark:border-slate-700">
           <thead>
             <tr className="bg-gray-50 dark:bg-slate-800">
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-slate-300">ID</th>
@@ -162,7 +217,7 @@ const UserPage: React.FC = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200 dark:bg-slate-900 dark:divide-slate-700">
-            {users.map((user) => (
+            {filteredUsers.map((user) => (
               <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-slate-800">
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-slate-100">{user.id}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-slate-100">{user.name}</td>
@@ -184,26 +239,39 @@ const UserPage: React.FC = () => {
                 </td>
               </tr>
             ))}
+            {filteredUsers.length === 0 && (
+              <tr>
+                <td colSpan={6} className="px-6 py-6 text-center text-sm text-gray-500 dark:text-slate-300">
+                  No users found.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
 
       {/* Pagination */}
       {pagination && (
-        <div className="flex justify-center mt-6">
-          <div className="flex space-x-2">
+        <div className="flex justify-between items-center mt-4 px-6 py-3 bg-gray-50 border-t border-gray-200 rounded-b-lg dark:bg-slate-800 dark:border-slate-700">
+          <div className="text-sm text-gray-700 dark:text-slate-300">
+            {searchTerm.trim()
+              ? <>Showing {filteredUsers.length} results on this page</>
+              : <>Showing {pagination.from} to {pagination.to} of {pagination.total} entries</>
+            }
+          </div>
+          <div className="flex justify-center space-x-2">
             {pagination.links.map((link, index) => (
               <button
                 key={index}
                 onClick={() => link.page && handlePageChange(link.page)}
-                disabled={!link.url}
-                className={`px-3 py-2 border rounded ${
-                  link.active
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white text-gray-700 hover:bg-gray-50 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700'
-                } ${!link.url ? 'opacity-50 cursor-not-allowed' : ''} dark:border-slate-700`}
-                dangerouslySetInnerHTML={{ __html: link.label }}
-              />
+                disabled={link.page === null || link.active}
+                className={`px-3 py-2 text-sm font-medium rounded ${link.active
+                    ? 'bg-blue-500 text-white dark:bg-blue-500'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700'
+                  } ${link.page === null ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
+              >
+                {link.label}
+              </button>
             ))}
           </div>
         </div>
